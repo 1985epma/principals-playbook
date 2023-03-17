@@ -1,0 +1,56 @@
+---
+- name: Criar certificados usando OpenSSL
+  hosts: localhost
+  vars:
+    common_name: "exemplo.com"
+    cert_dir: "/home/user/certificados"
+    ca_cert: "/home/user/certificados/cacert.pem"
+    ca_key: "/home/user/certificados/cakey.pem"
+  tasks:
+    - name: Criação da chave privada
+      openssl_privatekey:
+        path: "{{ cert_dir }}/key.pem"
+        type: RSA
+        size: 4096
+      register: key_result
+
+    - name: Criação do certificado de solicitação de assinatura de certificado (CSR)
+      openssl_csr:
+        path: "{{ cert_dir }}/csr.pem"
+        privatekey_path: "{{ cert_dir }}/key.pem"
+        common_name: "{{ common_name }}"
+      register: csr_result
+
+    - name: Assinatura do certificado pelo CA
+      openssl_certificate:
+        path: "{{ cert_dir }}/cert.pem"
+        csr_path: "{{ cert_dir }}/csr.pem"
+        serial_number: "{{ lookup('file', cert_dir + '/serial') | int }}"
+        ca_path: "{{ ca_cert }}"
+        ca_key_path: "{{ ca_key }}"
+        state: present
+        basic_constraints: "CA:FALSE"
+        key_usage:
+          - "digitalSignature"
+          - "keyEncipherment"
+          - "dataEncipherment"
+        extended_key_usage:
+          - "serverAuth"
+          - "clientAuth"
+          - "emailProtection"
+      register: cert_result
+
+    - name: Incrementa o número do serial para o próximo certificado
+      copy:
+        content: "{{ lookup('file', cert_dir + '/serial') | int + 1 }}"
+        dest: "{{ cert_dir }}/serial"
+
+    - name: Remoção do CSR
+      file:
+        path: "{{ cert_dir }}/csr.pem"
+        state: absent
+
+    - name: Exibição do resultado
+      debug:
+        var: cert_result
+
