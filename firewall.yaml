@@ -1,0 +1,70 @@
+---
+- name: Configurar firewall
+  hosts: all
+  become: true
+
+  vars:
+    blocked_domains:
+      - "cn"
+      - "ru"
+      - "kp"
+      - "sy"
+      - "ir"
+      - "kp"
+      - "sa"
+      - "pk"
+      - "cu"
+      - "kp"
+      - "tn"
+      - "vn"
+    blocked_keywords:
+      - "porn"
+      - "xxx"
+      - "torrent"
+
+  tasks:
+    - name: Proibir todas as conexões entrantes
+      iptables:
+        chain: INPUT
+        policy: DROP
+      become: true
+
+    - name: Permitir todas as conexões de loopback
+      iptables:
+        chain: INPUT
+        protocol: all
+        in_interface: lo
+        jump: ACCEPT
+      become: true
+
+    - name: Permitir conexões estabelecidas e relacionadas
+      iptables:
+        chain: INPUT
+        protocol: all
+        state: ESTABLISHED,RELATED
+        jump: ACCEPT
+      become: true
+
+    - name: Bloquear tráfego para sites proibidos
+      iptables:
+        chain: OUTPUT
+        match: string
+        string: "{{ item }}"
+        jump: DROP
+      with_items: "{{ blocked_domains }}"
+      become: true
+
+    - name: Bloquear tráfego para sites com palavras-chave proibidas
+      iptables:
+        chain: OUTPUT
+        match: string
+        string: "{{ item }}"
+        jump: DROP
+      with_items: "{{ blocked_keywords }}"
+      become: true
+
+    - name: Salvar as regras do firewall
+      iptables:
+        state: save
+      become: true
+

@@ -1,0 +1,60 @@
+---
+- name: Configurar o Ubuntu para ser mais enxuto
+  hosts: all
+  become: yes
+
+  tasks:
+    - name: Remover pacotes desnecessários
+      apt:
+        name: 
+          - libreoffice*
+          - thunderbird*
+          - gnome-mahjongg*
+          - gnome-mines*
+          - gnome-sudoku*
+          - gnome-calendar*
+          - gnome-todo*
+          - aisleriot*
+          - cheese*
+          - shotwell*
+          - rhythmbox*
+          - totem*
+          - gnome-weather*
+          - gnome-photos*
+          - gnome-music*
+          - gnome-getting-started-docs*
+          - gnome-user-guide*
+          - gnome-initial-setup*
+          - gnome-online-accounts*
+          - gnome-software*
+          - gnome-software-common*
+          - ubuntu-web-launchers*
+          - yelp*
+          - update-manager*
+          - update-notifier*
+          - ubuntu-report*
+        state: absent
+      become: yes
+
+    - name: Remover snaps desnecessários
+      shell: |
+        snap list --all | awk '{if($1 != "Name"){print $1}}' | xargs -n1 snap remove --purge
+      become: yes
+
+    - name: Desativar serviços desnecessários
+      systemd:
+        name: "{{ item }}"
+        state: stopped
+        enabled: no
+      with_items:
+        - snapd.seeded.service
+        - NetworkManager-wait-online.service
+        - NetworkManager.service
+        - ModemManager.service
+      become: yes
+
+    - name: Limpar cache do apt
+      apt:
+        autoclean: yes
+      become: yes
+

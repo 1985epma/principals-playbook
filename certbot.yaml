@@ -1,0 +1,31 @@
+---
+- name: Configurar certificado SSL com o Certbot
+  hosts: webservers
+  become: yes
+  
+  tasks:
+    - name: Instalar pacotes necessários para o Certbot
+      apt:
+        name:
+          - software-properties-common
+          - apt-transport-https
+      become: yes
+
+    - name: Adicionar repositório do Certbot
+      apt_repository:
+        repo: "deb http://ppa.launchpad.net/certbot/certbot/ubuntu xenial main"
+        state: present
+        filename: "certbot"
+        keyserver: "keyserver.ubuntu.com"
+        key_id: "75BCA694B3B4785F"
+      become: yes
+
+    - name: Instalar Certbot
+      apt:
+        name: certbot
+        state: latest
+      become: yes
+
+    - name: Obter certificado SSL usando o Certbot
+      shell: certbot certonly --webroot -w /var/www/example -d example.com
+
